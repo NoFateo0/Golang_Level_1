@@ -12,13 +12,13 @@ func InsertionSort(slice []int) []int {
 	return slice
 }
 
-func BubbleSort(array []int) []int {
-	for i := 0; i < len(array)-1; i++ {
-		for j := 0; j < len(array)-i-1; j++ {
-			if array[j] > array[j+1] {
-				array[j], array[j+1] = array[j+1], array[j]
+func BubbleSort(slice []int) []int {
+	for i := 0; i < len(slice)-1; i++ {
+		for j := 0; j < len(slice)-i-1; j++ {
+			if slice[j] > slice[j+1] {
+				slice[j], slice[j+1] = slice[j+1], slice[j]
 			}
 		}
 	}
-	return array
+	return slice
 }
