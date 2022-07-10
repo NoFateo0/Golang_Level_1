@@ -7,18 +7,11 @@ import (
 
 func main() {
 	confMapa := config.FlagFunc()
-	conf, err := config.Parser(confMapa)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	gg := config.Validation(confMapa)
 
 	jsonConf := config.ConfFile()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	gg2 := config.Validation(jsonConf)
+	fmt.Println("С флагами: ", gg)
+	fmt.Println("Из json: ", gg2)
 
-	fmt.Println("С флагами: ", conf)
-	fmt.Println("Из json: ", jsonConf)
 }

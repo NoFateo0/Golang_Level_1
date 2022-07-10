@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
-	"strconv"
 )
 
 type Configuration struct {
@@ -19,25 +19,20 @@ type Configuration struct {
 	SomeAppKey  string `json:"some_app_key"`
 }
 
-func FlagFunc() map[string]string {
-	var portFlag, databaseFlag, jaegerFlag, sentryFlag, kafkaBrokerFlag, someAppIdFlag, someAppKeyFlag string
-	parametersMap := make(map[string]string)
+func FlagFunc() Configuration {
+	parametersConf := Configuration{}
 
-	flag.StringVar(&portFlag, "port", "8080", "Укажите нужный порт")
-	flag.StringVar(&databaseFlag, "db_url", "", "Укажите ссылку на базу данных")
-	flag.StringVar(&jaegerFlag, "jaeger_url", "", "Укажите ссылку на Jaeger")
-	flag.StringVar(&sentryFlag, "sentry_url", "", "Укажите ссылку на Sentry")
-	flag.StringVar(&kafkaBrokerFlag, "kafka_broker", "", "Укажите ссылку на Kafka")
-	flag.StringVar(&someAppIdFlag, "some_app_id", "0", "Указать ID")
-	flag.StringVar(&someAppKeyFlag, "some_app_key", "", "Указать ключ")
+	flag.IntVar(&parametersConf.Port, "port", 8080, "Укажите нужный порт")
+	flag.StringVar(&parametersConf.Database, "db_url", "", "Укажите ссылку на базу данных")
+	flag.StringVar(&parametersConf.Jaeger, "jaeger_url", "", "Укажите ссылку на Jaeger")
+	flag.StringVar(&parametersConf.Sentry, "sentry_url", "", "Укажите ссылку на Sentry")
+	flag.StringVar(&parametersConf.KafkaBroker, "kafka_broker", "", "Укажите ссылку на Kafka")
+	flag.IntVar(&parametersConf.SomeAppId, "some_app_id", 0, "Указать ID")
+	flag.StringVar(&parametersConf.SomeAppKey, "some_app_key", "", "Указать ключ")
 
 	flag.Parse()
 
-	flag.Visit(func(p *flag.Flag) {
-		parametersMap[p.Name] = p.Value.String()
-	})
-
-	return parametersMap
+	return parametersConf
 }
 
 func ConfFile() Configuration {
@@ -63,48 +58,42 @@ func ConfFile() Configuration {
 	return packageJSON
 }
 
-func ParseInt(v string) (int, error) {
-	valueInt, err := strconv.Atoi(v)
+func Validation(configuration Configuration) Configuration {
+	myIntConf := configuration
+	var inInterface map[string]interface{}
+	inMap := make(map[string]string)
 
+	file, _ := json.Marshal(myIntConf)
+	err := json.Unmarshal(file, &inInterface)
 	if err != nil {
-		return 0, fmt.Errorf("Невозможно прочитать передаваемое значение.")
+		log.Printf("Невозможно прочитать файл: %v", err)
 	}
 
-	return valueInt, nil
-}
+	for key, value := range inInterface {
+		strKey := fmt.Sprintf("%v", key)
+		strValue := fmt.Sprintf("%v", value)
 
-func ParseString(v string) (string, error) {
-	if v == "" {
-		err := fmt.Errorf("Невозможно прочитать передаваемое значение.")
-		return v, err
+		inMap[strKey] = strValue
 	}
-	return v, nil
-}
 
-func Parser(d map[string]string) (Configuration, error) {
-	data := Configuration{}
-	var err error
-
-	for k, v := range d {
-		switch k {
-		case "port":
-			data.Port, err = ParseInt(v)
-		case "db_url":
-			data.Database, err = ParseString(v)
+	for field, val := range inMap {
+		switch field {
 		case "jaeger_url":
-			data.Jaeger, err = ParseString(v)
+			_, err := url.Parse(val)
+			if err != nil {
+				log.Printf("Невозможно получить URL: %v", err)
+			}
 		case "sentry_url":
-			data.Sentry, err = ParseString(v)
-		case "kafka_broker":
-			data.KafkaBroker, err = ParseString(v)
-		case "some_app_id":
-			data.SomeAppId, err = ParseInt(v)
-		case "some_app_key":
-			data.SomeAppKey, err = ParseString(v)
-		}
-		if err != nil {
-			return Configuration{}, err
+			_, err := url.Parse(val)
+			if err != nil {
+				log.Printf("Невозможно получить URL: %v", err)
+			}
+		case "db_url":
+			_, err := url.Parse(val)
+			if err != nil {
+				log.Printf("Невозможно получить URL: %v", err)
+			}
 		}
 	}
-	return data, nil
+	return myIntConf
 }
